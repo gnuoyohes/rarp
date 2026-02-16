@@ -1,3 +1,4 @@
+CMakeSettings.json
 CMakeLists.txt.user
 CMakeCache.txt
 CMakeFiles
@@ -28,3 +29,10 @@ cmake-build-debug
 cmake-build-release
 cmake-build-relwithdebinfo
 packaging/Output/*
+
+# Local build folders
+out
+build
+
+# Visual Studio
+.vs

@@ -1,5 +1,6 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "SynthVoice.h"
 
 //==============================================================================
 PluginProcessor::PluginProcessor()
@@ -10,12 +11,22 @@ PluginProcessor::PluginProcessor()
                       #endif
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
-                       )
+              ),
+      state (*this, &undoManager, "parameters", createParameters())
 {
+    gainParam = state.getRawParameterValue ("gain");
+
+    
+    synth.addSound (new SynthSound());
+
+    const int numSynthVoices = 8;
+
+    for (int i = 0; i < numSynthVoices; ++i)
+        synth.addVoice (new SynthVoice(gainParam));
 }
 
 PluginProcessor::~PluginProcessor()
-{
+{ 
 }
 
 //==============================================================================
@@ -86,9 +97,18 @@ void PluginProcessor::changeProgramName (int index, const juce::String& newName)
 //==============================================================================
 void PluginProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    // Use this method as the place to do any pre-playback
-    // initialisation that you need..
-    juce::ignoreUnused (sampleRate, samplesPerBlock);
+    // Prepare synth
+    synth.setCurrentPlaybackSampleRate (sampleRate);
+
+    // Prepare synth voices
+    for (int i = 0; i < synth.getNumVoices(); ++i)
+    {
+        auto voice = dynamic_cast<SynthVoice*> (synth.getVoice (i));
+        if (voice)
+        {
+            voice->prepareToPlay (sampleRate, samplesPerBlock, getTotalNumOutputChannels());
+        }
+    }
 }
 
 void PluginProcessor::releaseResources()
@@ -134,8 +154,10 @@ void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     // This is here to avoid people getting screaming feedback
     // when they first compile a plugin, but obviously you don't need to keep
     // this code if your algorithm always overwrites all the output channels.
-    for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-        buffer.clear (i, 0, buffer.getNumSamples());
+    //for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
+    //    buffer.clear (i, 0, buffer.getNumSamples());
+
+    buffer.clear();
 
     // This is the place where you'd normally do the guts of your plugin's
     // audio processing...
@@ -143,12 +165,33 @@ void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     // the samples and the outer loop is handling the channels.
     // Alternatively, you can process the samples with the channels
     // interleaved by keeping the same state.
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
-    {
-        auto* channelData = buffer.getWritePointer (channel);
-        juce::ignoreUnused (channelData);
-        // ..do something to the data...
-    }
+    //for (int channel = 0; channel < totalNumInputChannels; ++channel)
+    //{
+    //    auto* channelData = buffer.getWritePointer (channel);
+    //    juce::ignoreUnused (channelData);
+    //    // ..do something to the data...
+    //}
+
+    //for (const auto metadata : midiMessages)
+    //{
+    //    auto message = metadata.getMessage();
+    //    if (message.isNoteOn())
+    //    {
+    //        int noteNumber = message.getNoteNumber();
+    //        freq = juce::MidiMessage::getMidiNoteInHertz (noteNumber);
+    //    }
+    //    else if (message.isNoteOff())
+    //    {
+    //        freq = 0.0f;
+    //    }
+    //}
+
+    // Process MIDI messages
+    keyboardState.processNextMidiBuffer (midiMessages, 0, buffer.getNumSamples(), true);
+
+    // Process synth block
+    synth.renderNextBlock (buffer, midiMessages, 0, buffer.getNumSamples());
+    
 }
 
 //==============================================================================
@@ -165,20 +208,74 @@ juce::AudioProcessorEditor* PluginProcessor::createEditor()
 //==============================================================================
 void PluginProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
-    // You should use this method to store your parameters in the memory block.
-    // You could do that either as raw data, or use the XML or ValueTree classes
-    // as intermediaries to make it easy to save and load complex data.
-    juce::ignoreUnused (destData);
+    auto stateCopy = state.copyState();
+    std::unique_ptr<juce::XmlElement> xml (stateCopy.createXml());
+    copyXmlToBinary (*xml, destData);
 }
 
 void PluginProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-    // You should use this method to restore your parameters from this memory block,
-    // whose contents will have been created by the getStateInformation() call.
-    juce::ignoreUnused (data, sizeInBytes);
+    std::unique_ptr<juce::XmlElement> xmlState (getXmlFromBinary (data, sizeInBytes));
+    if (xmlState.get() != nullptr)
+        if (xmlState->hasTagName (state.state.getType()))
+            state.replaceState (juce::ValueTree::fromXml (*xmlState));
 }
 
 //==============================================================================
+juce::AudioProcessorValueTreeState::ParameterLayout PluginProcessor::createParameters()
+{
+    std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
+
+    // Oscillator select param
+    params.push_back(std::make_unique<juce::AudioParameterChoice> (
+        juce::ParameterID { "osc" },
+        "Oscillator Type",
+        juce::StringArray {"Sine", "Saw", "Square"},
+        0
+    ));
+
+    // Gain param
+    params.push_back(std::make_unique<juce::AudioParameterFloat> (
+        juce::ParameterID { "gain" },
+        "Gain",
+        0.0f,
+        1.0f,
+        0.5f
+    ));
+
+    // ADSR params
+    params.push_back (std::make_unique<juce::AudioParameterFloat> (
+        juce::ParameterID { "attack" },
+        "Attack",
+        0.0f,
+        1.0f,
+        0.1f
+    ));
+
+    params.push_back (std::make_unique<juce::AudioParameterFloat> (
+        juce::ParameterID { "decay" },
+        "Decay",
+        0.0f,
+         1.0f,
+        0.1f));
+
+    params.push_back (std::make_unique<juce::AudioParameterFloat> (
+        juce::ParameterID { "sustain" },
+        "Sustain",
+        0.0f,
+        1.0f,
+        1.0f));
+
+    params.push_back (std::make_unique<juce::AudioParameterFloat> (
+        juce::ParameterID { "release" },
+        "Release",
+        0.1f,
+        3.0f,
+        0.1f));
+
+    return { params.begin(), params.end() };
+}
+
 // This creates new instances of the plugin..
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {

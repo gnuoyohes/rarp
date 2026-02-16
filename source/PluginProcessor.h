@@ -1,10 +1,12 @@
 #pragma once
 
 #include <juce_audio_processors/juce_audio_processors.h>
+#include <juce_dsp/juce_dsp.h>
 
 #if (MSVC)
 #include "ipps.h"
 #endif
+
 
 class PluginProcessor : public juce::AudioProcessor
 {
@@ -38,6 +40,20 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
+    juce::AudioProcessorValueTreeState& getState() { return state; }
+    juce::UndoManager& getUndoManager() { return undoManager; }
+    juce::MidiKeyboardState& getMidiKeyboardState() { return keyboardState; }
+
 private:
+    juce::AudioProcessorValueTreeState state;
+    juce::UndoManager undoManager;
+    juce::AudioProcessorValueTreeState::ParameterLayout createParameters();
+
+    std::atomic<float>* gainParam;
+
+    juce::Synthesiser synth;
+
+    juce::MidiKeyboardState keyboardState;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginProcessor)
 };
