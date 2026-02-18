@@ -2,6 +2,9 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_dsp/juce_dsp.h>
+#include <juce_audio_utils/juce_audio_utils.h>
+
+#include "Arpeggiator.h"
 
 #if (MSVC)
 #include "ipps.h"
@@ -44,14 +47,16 @@ public:
     juce::UndoManager& getUndoManager() { return undoManager; }
     juce::MidiKeyboardState& getMidiKeyboardState() { return keyboardState; }
 
+    juce::AudioVisualiserComponent waveform { 2 };
+
 private:
     juce::AudioProcessorValueTreeState state;
     juce::UndoManager undoManager;
     juce::AudioProcessorValueTreeState::ParameterLayout createParameters();
 
-    std::atomic<float>* gainParam;
-
     juce::Synthesiser synth;
+
+    Arpeggiator arp;
 
     juce::MidiKeyboardState keyboardState;
 

@@ -3,14 +3,15 @@
 #include "PluginProcessor.h"
 #include "BinaryData.h"
 #include "melatonin_inspector/melatonin_inspector.h"
-#include <juce_audio_utils/juce_audio_utils.h>
+
+#include "ADSRComponent.h"
 
 //==============================================================================
 class PluginEditor : public juce::AudioProcessorEditor
                      //private juce::Slider::Listener
 {
 public:
-    explicit PluginEditor (PluginProcessor&);
+    explicit PluginEditor (PluginProcessor& p);
     ~PluginEditor() override;
 
     //==============================================================================
@@ -29,23 +30,18 @@ private:
     juce::Slider gainSlider;
     juce::Label gainLabel;
 
-    juce::Slider attackSlider;
-    juce::Slider decaySlider;
-    juce::Slider sustainSlider;
-    juce::Slider releaseSlider;
+    std::unique_ptr<ADSRComponent> adsrComponent;
 
     juce::ComboBox oscSelector;
+    juce::Label oscLabel;
+
+    juce::Slider speedSlider;
+    juce::Label speedLabel;
 
     // Attachments
-    using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
-    std::unique_ptr<SliderAttachment> gainSliderAttachment;
-
-    std::unique_ptr<SliderAttachment> attackSliderAttachment;
-    std::unique_ptr<SliderAttachment> decaySliderAttachment;
-    std::unique_ptr<SliderAttachment> sustainSliderAttachment;
-    std::unique_ptr<SliderAttachment> releaseSliderAttachment;
-
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> gainSliderAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> oscSelectorAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> speedSliderAttachment;
 
     juce::UndoManager& undoManager;
     juce::MidiKeyboardComponent midiKeyboard;

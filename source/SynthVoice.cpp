@@ -1,8 +1,20 @@
 #include "SynthVoice.h"
 
-SynthVoice::SynthVoice (std::atomic<float>* gainPtr)
-    : gainParam(gainPtr)
+SynthVoice::SynthVoice (std::atomic<float>* gainPtr, std::array<std::atomic<float>*, 5> adsrPtrs, std::atomic<float>* oscPtr)
+    : gainAtomic (gainPtr),
+      oscAtomic (oscPtr)
 {
+    oscillators = {
+        // sine
+        juce::dsp::Oscillator<float> ([] (float x) { return std::sin (x); }),
+        // triangle
+        juce::dsp::Oscillator<float> ([] (float x) { return 2 / juce::MathConstants<float>::pi * std::asin (std::sin (x)); }),
+        // sawtooth
+        juce::dsp::Oscillator<float> ([] (float x) { return x / juce::MathConstants<float>::pi; }),
+        // square
+        juce::dsp::Oscillator<float> ([] (float x) { return x < 0.0f ? -1.0f : 1.0f; })
+    };
+    adsr.initialize (adsrPtrs);
 }
 
 //==============================================================================
@@ -17,7 +29,10 @@ void SynthVoice::startNote(int midiNoteNumber, float velocity, juce::Synthesiser
     auto freq = juce::MidiMessage::getMidiNoteInHertz (midiNoteNumber);
 
     // Force = true, no pitch glide
-    sinOsc.setFrequency (freq, true);
+    for (int i = 0; i < oscillators.size(); ++i)
+    {
+        oscillators[i].setFrequency (freq, true);
+    }
 
     adsr.noteOn();
 }
@@ -48,20 +63,26 @@ void SynthVoice::renderNextBlock(juce::AudioBuffer<float>& outputBuffer, int sta
     voiceBuffer.clear();
 
     juce::dsp::AudioBlock<float> audioBlock { voiceBuffer };
-    //auto subBlock = audioBlock.getSubBlock ((size_t) startSample, (size_t) numSamples);
-    //juce::dsp::ProcessContextReplacing<float> context { subBlock };
     juce::dsp::ProcessContextReplacing<float> context { audioBlock };
 
-    // Apply sine oscillator
-    sinOsc.process (context);
+    // This method does not work with polyphony
+    //auto subBlock = audioBlock.getSubBlock ((size_t) startSample, (size_t) numSamples);
+    //juce::dsp::ProcessContextReplacing<float> context { subBlock };
+
+    // Process oscillator
+    int oscIndex = static_cast<int> (oscAtomic->load());
+    oscillators[oscIndex].process (context);
+    
 
     // Get gain value from PluginProcessor's atomic float and apply
-    gain.setGainLinear (gainParam->load());
+    gain.setGainLinear (gainAtomic->load());
     gain.process (context);
 
     // Apply ADSR Envelope
+    adsr.updateADSR();
     adsr.applyEnvelopeToBuffer(voiceBuffer, 0, voiceBuffer.getNumSamples());
 
+    // Add from per-voice voiceBuffer to outputBuffer from startSample
     for (int i = 0; i < outputBuffer.getNumChannels(); ++i)
         outputBuffer.addFrom (i, startSample, voiceBuffer, i, 0, numSamples);
 
@@ -72,18 +93,17 @@ void SynthVoice::renderNextBlock(juce::AudioBuffer<float>& outputBuffer, int sta
 void SynthVoice::prepareToPlay (double sampleRate, int samplesPerBlock, int numOutputChannels)
 {
     adsr.setSampleRate(sampleRate);
-    adsrParams.attack = 0.1f;
-    adsrParams.decay = 0.4f;
-    adsrParams.sustain = 0.3f;
-    adsrParams.release = 0.3f;
-    adsr.setParameters (adsrParams);
 
     juce::dsp::ProcessSpec spec;
     spec.maximumBlockSize = samplesPerBlock;
     spec.sampleRate = sampleRate;
     spec.numChannels = numOutputChannels;
 
-    sinOsc.prepare (spec);
+    for (int i = 0; i < oscillators.size(); ++i)
+    {
+        oscillators[i].prepare (spec);
+    }
+
     gain.prepare (spec);
     gain.setRampDurationSeconds (0.01);
 }

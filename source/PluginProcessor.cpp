@@ -14,15 +14,23 @@ PluginProcessor::PluginProcessor()
               ),
       state (*this, &undoManager, "parameters", createParameters())
 {
-    gainParam = state.getRawParameterValue ("gain");
-
+    // Initialize atomic param ptrs
+    std::atomic<float>* gainAtomic = state.getRawParameterValue ("gain");
+    std::array<std::atomic<float>*, 5> adsrAtomic = {
+        state.getRawParameterValue ("attack"),
+        state.getRawParameterValue ("decay"),
+        state.getRawParameterValue ("sustain"),
+        state.getRawParameterValue ("release"),
+        state.getRawParameterValue ("expo")
+    };
+    std::atomic<float>* oscAtomic = state.getRawParameterValue ("osc");
     
     synth.addSound (new SynthSound());
 
     const int numSynthVoices = 8;
 
     for (int i = 0; i < numSynthVoices; ++i)
-        synth.addVoice (new SynthVoice(gainParam));
+        synth.addVoice (new SynthVoice (gainAtomic, adsrAtomic, oscAtomic));
 }
 
 PluginProcessor::~PluginProcessor()
@@ -100,6 +108,15 @@ void PluginProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     // Prepare synth
     synth.setCurrentPlaybackSampleRate (sampleRate);
 
+    // Prepare arpeggiator
+    arp.prepareToPlay (sampleRate,
+        state.getRawParameterValue ("noteDur"),
+        state.getRawParameterValue ("randomizePitch"),
+        state.getRawParameterValue ("randomziePan"),
+        state.getRawParameterValue ("ascending"),
+        state.getRawParameterValue ("sync")
+    );
+
     // Prepare synth voices
     for (int i = 0; i < synth.getNumVoices(); ++i)
     {
@@ -159,38 +176,16 @@ void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer,
 
     buffer.clear();
 
-    // This is the place where you'd normally do the guts of your plugin's
-    // audio processing...
-    // Make sure to reset the state if your inner loop is processing
-    // the samples and the outer loop is handling the channels.
-    // Alternatively, you can process the samples with the channels
-    // interleaved by keeping the same state.
-    //for (int channel = 0; channel < totalNumInputChannels; ++channel)
-    //{
-    //    auto* channelData = buffer.getWritePointer (channel);
-    //    juce::ignoreUnused (channelData);
-    //    // ..do something to the data...
-    //}
-
-    //for (const auto metadata : midiMessages)
-    //{
-    //    auto message = metadata.getMessage();
-    //    if (message.isNoteOn())
-    //    {
-    //        int noteNumber = message.getNoteNumber();
-    //        freq = juce::MidiMessage::getMidiNoteInHertz (noteNumber);
-    //    }
-    //    else if (message.isNoteOff())
-    //    {
-    //        freq = 0.0f;
-    //    }
-    //}
-
     // Process MIDI messages
     keyboardState.processNextMidiBuffer (midiMessages, 0, buffer.getNumSamples(), true);
 
+    // Process arpeggiator
+    arp.processBlock (buffer, midiMessages);
+
     // Process synth block
     synth.renderNextBlock (buffer, midiMessages, 0, buffer.getNumSamples());
+
+    waveform.pushBuffer (buffer);
     
 }
 
@@ -230,7 +225,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout PluginProcessor::createParam
     params.push_back(std::make_unique<juce::AudioParameterChoice> (
         juce::ParameterID { "osc" },
         "Oscillator Type",
-        juce::StringArray {"Sine", "Saw", "Square"},
+        juce::StringArray {"Sine", "Triangle", "Saw", "Square"},
         0
     ));
 
@@ -257,21 +252,68 @@ juce::AudioProcessorValueTreeState::ParameterLayout PluginProcessor::createParam
         "Decay",
         0.0f,
          1.0f,
-        0.1f));
+        0.1f
+    ));
 
     params.push_back (std::make_unique<juce::AudioParameterFloat> (
         juce::ParameterID { "sustain" },
         "Sustain",
         0.0f,
         1.0f,
-        1.0f));
+        1.0f
+    ));
 
     params.push_back (std::make_unique<juce::AudioParameterFloat> (
         juce::ParameterID { "release" },
         "Release",
         0.1f,
-        3.0f,
-        0.1f));
+        1.0f,
+        0.1f
+    ));
+
+    params.push_back (std::make_unique<juce::AudioParameterFloat> (
+        juce::ParameterID { "expo" },
+        "Expo",
+        0.1f,
+        10.0f,
+        0.1f
+    ));
+
+    params.push_back (std::make_unique<juce::AudioParameterFloat> (
+        juce::ParameterID { "noteDur" },
+        "Note Duration",
+        0.001f,
+        2.0f,
+        0.1f
+    ));
+
+    params.push_back (std::make_unique<juce::AudioParameterFloat> (
+        juce::ParameterID { "randomizePitch" },
+        "Randomize Pitch",
+        0.0f,
+        1.0f,
+        0.0f
+    ));
+
+    params.push_back (std::make_unique<juce::AudioParameterFloat> (
+        juce::ParameterID { "randomizePan" },
+        "Randomize Pan",
+        0.0f,
+        1.0f,
+        0.0f
+    ));
+
+    params.push_back (std::make_unique<juce::AudioParameterBool> (
+        juce::ParameterID { "ascending" },
+        "Ascending",
+        true
+    ));
+
+    params.push_back (std::make_unique<juce::AudioParameterBool> (
+        juce::ParameterID { "sync" },
+        "Sync with BPM",
+        false
+    ));
 
     return { params.begin(), params.end() };
 }

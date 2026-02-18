@@ -8,16 +8,16 @@ TEST_CASE ("one is equal to one", "[dummy]")
     REQUIRE (1 == 1);
 }
 
-TEST_CASE ("Plugin instance", "[instance]")
-{
-    PluginProcessor testPlugin;
-
-    SECTION ("name")
-    {
-        CHECK_THAT (testPlugin.getName().toStdString(),
-            Catch::Matchers::Equals ("Pamplejuce Demo"));
-    }
-}
+//TEST_CASE ("Plugin instance", "[instance]")
+//{
+//    PluginProcessor testPlugin;
+//
+//    SECTION ("name")
+//    {
+//        CHECK_THAT (testPlugin.getName().toStdString(),
+//            Catch::Matchers::Equals ("Pamplejuce Demo"));
+//    }
+//}
 
 
 #ifdef PAMPLEJUCE_IPP

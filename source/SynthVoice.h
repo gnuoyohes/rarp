@@ -3,10 +3,12 @@
 #include "SynthSound.h"
 #include <juce_dsp/juce_dsp.h>
 
+#include "ADSR.h"
+
 class SynthVoice : public juce::SynthesiserVoice
 {
 public:
-    SynthVoice (std::atomic<float>* gainPtr);
+    SynthVoice (std::atomic<float>* gainPtr, std::array<std::atomic<float>*, 5> adsrPtrs, std::atomic<float>* oscPtr);
 
     bool canPlaySound (juce::SynthesiserSound* sound) override;
     void startNote (int midiNoteNumber, float velocity, juce::SynthesiserSound* sound, int currentPitchWheelPosition) override;
@@ -22,10 +24,14 @@ private:
     // in renderNextBlock to prevent popping artifacts while supporting polyphony
     juce::AudioBuffer<float> voiceBuffer;
 
-    juce::ADSR adsr;
-    juce::ADSR::Parameters adsrParams;
+    ADSR adsr;
 
-    juce::dsp::Oscillator<float> sinOsc { [] (float x) { return std::sinf (x); } };
+    // DSP modules
+    std::array<juce::dsp::Oscillator<float>, 4> oscillators;
+
     juce::dsp::Gain<float> gain;
-    std::atomic<float>* gainParam;
+
+    // Atomic param ptrs passed from PluginProcessor
+    std::atomic<float>* gainAtomic;
+    std::atomic<float>* oscAtomic;
 };
