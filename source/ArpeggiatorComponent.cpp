@@ -16,7 +16,7 @@ ArpeggiatorComponent::ArpeggiatorComponent (juce::AudioProcessorValueTreeState& 
     addAndMakeVisible (widthSlider);
 
     widthLabel.setFont (juce::Font (14.0f, juce::Font::bold));
-    widthLabel.setText ("Width", juce::dontSendNotification);
+    widthLabel.setText ("Randomize Pan Width", juce::dontSendNotification);
     widthLabel.setColour (juce::Label::textColourId, juce::Colours::white);
     widthLabel.attachToComponent (&widthSlider, false);
     widthLabel.setJustificationType (juce::Justification::top);

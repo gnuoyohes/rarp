@@ -113,11 +113,11 @@ void PluginProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 
     // Prepare arpeggiator
     arp.prepareToPlay (sampleRate,
-        state.getRawParameterValue("arpeggiate"),
         state.getRawParameterValue ("noteDur"),
         state.getRawParameterValue ("randomize"),
         state.getRawParameterValue ("density"),
         state.getRawParameterValue ("width"),
+        &pan,
         state.getRawParameterValue ("ascending"),
         state.getRawParameterValue ("sync")
     );
@@ -181,14 +181,33 @@ void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer,
 
     buffer.clear();
 
+    int numSamples = buffer.getNumSamples();
+
     // Process MIDI messages
-    keyboardState.processNextMidiBuffer (midiMessages, 0, buffer.getNumSamples(), true);
+    keyboardState.processNextMidiBuffer (midiMessages, 0, numSamples, true);
 
     // Process arpeggiator
     arp.processBlock (buffer, midiMessages);
 
     // Process synth block
-    synth.renderNextBlock (buffer, midiMessages, 0, buffer.getNumSamples());
+    synth.renderNextBlock (buffer, midiMessages, 0, numSamples);
+
+    // Pan output
+    float panVal = pan.load();
+
+    if (panVal != 0.0f)
+    {
+        //auto* leftChannel = buffer.getWritePointer (0);
+        //auto* rightChannel = buffer.getWritePointer (1);
+        float leftGain = std::cos (0.5 * (pan + 1.0) * 0.5 * juce::MathConstants<float>::pi);
+        float rightGain = std::sin (0.5 * (pan + 1.0) * 0.5 * juce::MathConstants<float>::pi);
+
+        buffer.applyGainRamp (0, 0, numSamples, prevLeftGain, leftGain);
+        buffer.applyGainRamp (1, 0, numSamples, prevRightGain, rightGain);
+
+        prevLeftGain = leftGain;
+        prevRightGain = rightGain;
+    }
 
     waveform.pushBuffer (buffer);
     
@@ -291,11 +310,6 @@ juce::AudioProcessorValueTreeState::ParameterLayout PluginProcessor::createParam
         10.0f,
         0.1f
     ));
-
-    params.push_back (std::make_unique<juce::AudioParameterBool> (
-        juce::ParameterID { "arpeggiate" },
-        "Arpeggiate",
-        true));
 
     params.push_back (std::make_unique<juce::AudioParameterFloat> (
         juce::ParameterID { "noteDur" },

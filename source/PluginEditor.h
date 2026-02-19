@@ -38,13 +38,9 @@ private:
     juce::ComboBox oscSelector;
     juce::Label oscLabel;
 
-    juce::ToggleButton arpeggiateButton;
-    juce::Label arpeggiateLabel;
-
     // Attachments
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> gainSliderAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> oscSelectorAttachment;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> arpeggiateButtonAttachment;
 
     juce::UndoManager& undoManager;
     juce::MidiKeyboardComponent midiKeyboard;

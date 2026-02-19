@@ -4,32 +4,28 @@ class Arpeggiator
 {
 public:
     void prepareToPlay (double sampleRate,
-        std::atomic<float>* arpeggiatePtr,
         std::atomic<float>* noteDurPtr,
         std::atomic<float>* randomizePtr,
         std::atomic<float>* densityPtr,
-        std::atomic<float> * widthPtr,
-        std::atomic<float> * ascendingPtr,
-        std::atomic<float> * syncPtr)
+        std::atomic<float>* widthPtr,
+        std::atomic<float>* panPtr,
+        std::atomic<float>* ascendingPtr,
+        std::atomic<float>* syncPtr)
     {
         notes.clear();
         sr = static_cast<float> (sampleRate);
 
-        arpeggiate = arpeggiatePtr;
         noteDur = noteDurPtr;
         randomize = randomizePtr;
         density = densityPtr;
         width = widthPtr;
+        pan = panPtr;
         ascending = ascendingPtr;
         sync = syncPtr;
     };
 
     void processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
     {
-        // Don't do anything if arpeggiate is set false
-        if (!arpeggiate->load())
-            return;
-
         auto bufferSamples = buffer.getNumSamples();
 
         // Note duration in seconds
@@ -60,8 +56,13 @@ public:
                 lastNoteValue = -1;
             }
 
-            if (notes.size() > 0)
+            if (notes.size() > 0 && random.nextFloat() < density->load())
             {
+                // Set pan of current note, processed in PluginProcessor's processBlock()
+                float widthVal = width->load();
+                pan->store(random.nextFloat() * widthVal * 2 - widthVal);
+
+                // Select and play note from notes
                 if (ascending->load())
                     currentNote = (currentNote + 1) % notes.size();
                 else
@@ -71,8 +72,7 @@ public:
                         currentNote = notes.size() - 1;
                 }
 
-                float randomVal = random.nextFloat();
-                if (randomVal < randomize->load())
+                if (random.nextFloat() < randomize->load())
                 {
                     int randomNoteIndex = random.nextInt (notes.size());
                     lastNoteValue = notes[randomNoteIndex];
@@ -89,11 +89,11 @@ public:
     };
 
 private:
-    std::atomic<float>* arpeggiate;
     std::atomic<float>* noteDur;
     std::atomic<float>* randomize;
     std::atomic<float>* density;
     std::atomic<float>* width;
+    std::atomic<float>* pan;
     std::atomic<float>* ascending;
     std::atomic<float>* sync;
 

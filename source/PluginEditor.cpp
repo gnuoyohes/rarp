@@ -62,14 +62,6 @@ PluginEditor::PluginEditor (PluginProcessor& p)
     oscLabel.attachToComponent (&oscSelector, false);
     addAndMakeVisible (oscLabel);
 
-    // Arpeggiate Button
-    addAndMakeVisible (arpeggiateButton);
-    arpeggiateLabel.setFont (juce::Font (16.0f, juce::Font::bold));
-    arpeggiateLabel.setText ("Arpeggiate", juce::dontSendNotification);
-    arpeggiateLabel.setColour (juce::Label::textColourId, juce::Colours::white);
-    arpeggiateLabel.attachToComponent (&arpeggiateButton, false);
-    addAndMakeVisible (arpeggiateLabel);
-
     // Waveform
     addAndMakeVisible (processorRef.waveform);
     juce::LookAndFeel& defaultLookAndFeel = juce::LookAndFeel::getDefaultLookAndFeel();
@@ -81,8 +73,7 @@ PluginEditor::PluginEditor (PluginProcessor& p)
     // Initialize attachments
     gainSliderAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, "gain", gainSlider);
     oscSelectorAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment> (state, "osc", oscSelector);
-    arpeggiateButtonAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (state, "arpeggiate", arpeggiateButton);
-
+    
     // Use native title bar
     //auto* topLevel = juce::TopLevelWindow::getTopLevelWindow (0);
     //if (topLevel)
@@ -127,8 +118,6 @@ void PluginEditor::resized()
     gainSlider.setBounds (40, 50, 40, height / 4);
 
     oscSelector.setBounds (width / 4, 50, 100, 20);
-
-    arpeggiateButton.setBounds (oscSelector.getX() + 200, oscSelector.getY(), 100, 40);
 
     const int waveformX = 60;
     const int waveformY = 260;

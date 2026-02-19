@@ -70,6 +70,9 @@ private:
     juce::Synthesiser synth;
 
     Arpeggiator arp;
+    std::atomic<float> pan { 0.0f }; // from -1.0 (left) to 1.0 (right)
+    float prevLeftGain { 0 };
+    float prevRightGain { 0 };
 
     juce::MidiKeyboardState keyboardState;
 
