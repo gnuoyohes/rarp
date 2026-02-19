@@ -50,6 +50,19 @@ public:
     juce::AudioVisualiserComponent waveform { 2 };
 
 private:
+    static juce::String msValueToTextFunction (float value, int maximumStringLength)
+    {
+        if (value < 1)
+            return juce::String (value * 1000.0f) + " ms";
+        else
+            return juce::String (value) + " s";
+    };
+
+    static float msTextToValueFunction (const juce::String& text)
+    {
+        return text.getFloatValue() / 1000.0f;
+    };
+
     juce::AudioProcessorValueTreeState state;
     juce::UndoManager undoManager;
     juce::AudioProcessorValueTreeState::ParameterLayout createParameters();

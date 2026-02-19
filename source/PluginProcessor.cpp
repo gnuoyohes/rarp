@@ -31,6 +31,9 @@ PluginProcessor::PluginProcessor()
 
     for (int i = 0; i < numSynthVoices; ++i)
         synth.addVoice (new SynthVoice (gainAtomic, adsrAtomic, oscAtomic));
+
+    //waveform.setBufferSize(64);
+    waveform.setSamplesPerBlock(128);
 }
 
 PluginProcessor::~PluginProcessor()
@@ -110,9 +113,11 @@ void PluginProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 
     // Prepare arpeggiator
     arp.prepareToPlay (sampleRate,
+        state.getRawParameterValue("arpeggiate"),
         state.getRawParameterValue ("noteDur"),
-        state.getRawParameterValue ("randomizePitch"),
-        state.getRawParameterValue ("randomziePan"),
+        state.getRawParameterValue ("randomize"),
+        state.getRawParameterValue ("density"),
+        state.getRawParameterValue ("width"),
         state.getRawParameterValue ("ascending"),
         state.getRawParameterValue ("sync")
     );
@@ -242,33 +247,41 @@ juce::AudioProcessorValueTreeState::ParameterLayout PluginProcessor::createParam
     params.push_back (std::make_unique<juce::AudioParameterFloat> (
         juce::ParameterID { "attack" },
         "Attack",
-        0.0f,
-        1.0f,
-        0.1f
+        juce::NormalisableRange<float>(0.001f, 1.0f, 0.001, 0.5),
+        0.005f,
+        "",
+        juce::AudioProcessorParameter::genericParameter,
+        &msValueToTextFunction,
+        &msTextToValueFunction
     ));
 
     params.push_back (std::make_unique<juce::AudioParameterFloat> (
         juce::ParameterID { "decay" },
         "Decay",
-        0.0f,
-         1.0f,
-        0.1f
+        juce::NormalisableRange<float> (0.001f, 1.0f, 0.001, 0.5),
+        0.005f,
+        "",
+        juce::AudioProcessorParameter::genericParameter,
+        &msValueToTextFunction,
+        &msTextToValueFunction
     ));
 
     params.push_back (std::make_unique<juce::AudioParameterFloat> (
         juce::ParameterID { "sustain" },
         "Sustain",
-        0.0f,
-        1.0f,
+        juce::NormalisableRange<float> (0.0f, 1.0f, 0.01),
         1.0f
     ));
 
     params.push_back (std::make_unique<juce::AudioParameterFloat> (
         juce::ParameterID { "release" },
         "Release",
-        0.1f,
-        1.0f,
-        0.1f
+        juce::NormalisableRange<float> (0.001f, 1.0f, 0.001, 0.5),
+        0.005f,
+        "",
+        juce::AudioProcessorParameter::genericParameter,
+        &msValueToTextFunction,
+        &msTextToValueFunction
     ));
 
     params.push_back (std::make_unique<juce::AudioParameterFloat> (
@@ -279,25 +292,40 @@ juce::AudioProcessorValueTreeState::ParameterLayout PluginProcessor::createParam
         0.1f
     ));
 
+    params.push_back (std::make_unique<juce::AudioParameterBool> (
+        juce::ParameterID { "arpeggiate" },
+        "Arpeggiate",
+        true));
+
     params.push_back (std::make_unique<juce::AudioParameterFloat> (
         juce::ParameterID { "noteDur" },
         "Note Duration",
-        0.001f,
-        2.0f,
-        0.1f
+        juce::NormalisableRange<float> (0.001f, 3.0f, 0.001, 0.3),
+        0.1f,
+        "",
+        juce::AudioProcessorParameter::genericParameter,
+        &msValueToTextFunction,
+        &msTextToValueFunction
     ));
 
     params.push_back (std::make_unique<juce::AudioParameterFloat> (
-        juce::ParameterID { "randomizePitch" },
-        "Randomize Pitch",
+        juce::ParameterID { "randomize" },
+        "Randomize",
         0.0f,
         1.0f,
         0.0f
     ));
 
     params.push_back (std::make_unique<juce::AudioParameterFloat> (
-        juce::ParameterID { "randomizePan" },
-        "Randomize Pan",
+        juce::ParameterID { "density" },
+        "Density",
+        0.0f,
+        1.0f,
+        1.0f));
+
+    params.push_back (std::make_unique<juce::AudioParameterFloat> (
+        juce::ParameterID { "width" },
+        "Width",
         0.0f,
         1.0f,
         0.0f

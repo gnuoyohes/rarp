@@ -13,6 +13,9 @@ PluginEditor::PluginEditor (PluginProcessor& p)
     adsrComponent = std::make_unique<ADSRComponent> (state);
     addAndMakeVisible (*adsrComponent);
 
+    arpeggiatorComponent = std::make_unique<ArpeggiatorComponent> (state);
+    addAndMakeVisible (*arpeggiatorComponent);
+
     addAndMakeVisible (inspectButton);
     addAndMakeVisible (midiKeyboard);
 
@@ -59,28 +62,27 @@ PluginEditor::PluginEditor (PluginProcessor& p)
     oscLabel.attachToComponent (&oscSelector, false);
     addAndMakeVisible (oscLabel);
 
+    // Arpeggiate Button
+    addAndMakeVisible (arpeggiateButton);
+    arpeggiateLabel.setFont (juce::Font (16.0f, juce::Font::bold));
+    arpeggiateLabel.setText ("Arpeggiate", juce::dontSendNotification);
+    arpeggiateLabel.setColour (juce::Label::textColourId, juce::Colours::white);
+    arpeggiateLabel.attachToComponent (&arpeggiateButton, false);
+    addAndMakeVisible (arpeggiateLabel);
+
+    // Waveform
     addAndMakeVisible (processorRef.waveform);
     juce::LookAndFeel& defaultLookAndFeel = juce::LookAndFeel::getDefaultLookAndFeel();
     processorRef.waveform.setColours (defaultLookAndFeel.findColour (juce::Slider::backgroundColourId), defaultLookAndFeel.findColour (juce::Slider::thumbColourId));
     processorRef.waveform.setRepaintRate (30);
     processorRef.waveform.setBufferSize (512);
 
-    // Speed slider
-    speedSlider.setSliderStyle (juce::Slider::Rotary);
-    speedSlider.setTextBoxStyle (juce::Slider::TextBoxBelow, true, 50, 30);
-    speedSlider.setTextBoxIsEditable (true);
-    addAndMakeVisible (speedSlider);
-
-    speedLabel.setFont (juce::Font (16.0f, juce::Font::bold));
-    speedLabel.setText ("Note Duration", juce::dontSendNotification);
-    speedLabel.setColour (juce::Label::textColourId, juce::Colours::white);
-    speedLabel.attachToComponent (&speedSlider, false);
-    addAndMakeVisible (speedLabel);
-
+    
     // Initialize attachments
     gainSliderAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, "gain", gainSlider);
     oscSelectorAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment> (state, "osc", oscSelector);
-    speedSliderAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, "noteDur", speedSlider);
+    arpeggiateButtonAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (state, "arpeggiate", arpeggiateButton);
+
     // Use native title bar
     //auto* topLevel = juce::TopLevelWindow::getTopLevelWindow (0);
     //if (topLevel)
@@ -126,15 +128,15 @@ void PluginEditor::resized()
 
     oscSelector.setBounds (width / 4, 50, 100, 20);
 
+    arpeggiateButton.setBounds (oscSelector.getX() + 200, oscSelector.getY(), 100, 40);
+
     const int waveformX = 60;
     const int waveformY = 260;
-    const int waveformWidth = 400;
+    const int waveformWidth = 300;
     const int waveformHeight = 200;
-
-    const int speedSliderSize = 130;
 
     processorRef.waveform.setBounds (waveformX, waveformY, waveformWidth, waveformHeight);
 
-    speedSlider.setBounds (waveformX + waveformWidth + 30, waveformY + waveformHeight / 2 - speedSliderSize / 2, speedSliderSize, speedSliderSize);
+    arpeggiatorComponent->setBounds (waveformX + waveformWidth, waveformY, width - (waveformX + waveformWidth), height - waveformY);
     
 }

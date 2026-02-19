@@ -5,6 +5,7 @@
 #include "melatonin_inspector/melatonin_inspector.h"
 
 #include "ADSRComponent.h"
+#include "ArpeggiatorComponent.h"
 
 //==============================================================================
 class PluginEditor : public juce::AudioProcessorEditor
@@ -32,16 +33,18 @@ private:
 
     std::unique_ptr<ADSRComponent> adsrComponent;
 
+    std::unique_ptr<ArpeggiatorComponent> arpeggiatorComponent;
+
     juce::ComboBox oscSelector;
     juce::Label oscLabel;
 
-    juce::Slider speedSlider;
-    juce::Label speedLabel;
+    juce::ToggleButton arpeggiateButton;
+    juce::Label arpeggiateLabel;
 
     // Attachments
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> gainSliderAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> oscSelectorAttachment;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> speedSliderAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> arpeggiateButtonAttachment;
 
     juce::UndoManager& undoManager;
     juce::MidiKeyboardComponent midiKeyboard;

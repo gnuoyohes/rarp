@@ -8,6 +8,7 @@ ADSRComponent::ADSRComponent(juce::AudioProcessorValueTreeState& state)
         sliders[i].setSliderStyle (juce::Slider::Rotary);
         sliders[i].setTextBoxStyle (juce::Slider::TextBoxBelow, true, 50, 30);
         sliders[i].setTextBoxIsEditable (true);
+        //sliders[i].textFromValueFunction = [] (double value) { return std::to_string(static_cast<int>(value * 1000)) + " ms"; };
         addAndMakeVisible (sliders[i]);
 
         // label
