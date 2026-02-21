@@ -256,4 +256,4 @@ jobs:
           files: |
             */*.exe
             */*.zip
-            */*.dmg
+            # */*.dmg
