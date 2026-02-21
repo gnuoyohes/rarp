@@ -16,19 +16,19 @@ PluginEditor::PluginEditor (PluginProcessor& p)
     arpeggiatorComponent = std::make_unique<ArpeggiatorComponent> (state);
     addAndMakeVisible (*arpeggiatorComponent);
 
-    addAndMakeVisible (inspectButton);
+    //addAndMakeVisible (inspectButton);
     addAndMakeVisible (midiKeyboard);
 
     // Melatonin GUI inspector
-    inspectButton.onClick = [&] {
-        if (!inspector) {
-            inspector = std::make_unique<melatonin::Inspector> (*this);
-            inspector->onClose = [this]() { inspector.reset(); };
-            inspector->setUndoManager (&undoManager);
-        }
+    //inspectButton.onClick = [&] {
+    //    if (!inspector) {
+    //        inspector = std::make_unique<melatonin::Inspector> (*this);
+    //        inspector->onClose = [this]() { inspector.reset(); };
+    //        inspector->setUndoManager (&undoManager);
+    //    }
 
-        inspector->setVisible (true);
-    };
+    //    inspector->setVisible (true);
+    //};
 
     setSize (800, 600);
     
@@ -48,7 +48,6 @@ PluginEditor::PluginEditor (PluginProcessor& p)
     gainLabel.setText ("Gain", juce::dontSendNotification);
     gainLabel.setColour (juce::Label::textColourId, juce::Colours::white);
     gainLabel.attachToComponent (&gainSlider, false);
-    //gainLabel.setJustificationType (juce::Justification::bottom);
     addAndMakeVisible (gainLabel);
 
     // OSC ComboBox
@@ -91,6 +90,11 @@ void PluginEditor::paint (juce::Graphics& g)
     // (Our component is opaque, so we must completely fill the background with a solid colour)
     //g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
     g.fillAll (juce::Colours::black);
+
+    g.setColour (juce::Colours::white);
+
+    g.setFont (juce::Font (42.0f, juce::Font::bold));
+    g.drawText ("RARP", 0, 30, getWidth(), getHeight(), juce::Justification::centredTop, false);
 }
 
 void PluginEditor::resized()
@@ -117,7 +121,7 @@ void PluginEditor::resized()
 
     gainSlider.setBounds (40, 50, 40, height / 4);
 
-    oscSelector.setBounds (width / 4, 50, 100, 20);
+    oscSelector.setBounds (width / 6, 50, 100, 20);
 
     const int waveformX = 60;
     const int waveformY = 260;
@@ -127,5 +131,4 @@ void PluginEditor::resized()
     processorRef.waveform.setBounds (waveformX, waveformY, waveformWidth, waveformHeight);
 
     arpeggiatorComponent->setBounds (waveformX + waveformWidth, waveformY, width - (waveformX + waveformWidth), height - waveformY);
-    
 }

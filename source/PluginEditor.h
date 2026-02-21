@@ -9,7 +9,6 @@
 
 //==============================================================================
 class PluginEditor : public juce::AudioProcessorEditor
-                     //private juce::Slider::Listener
 {
 public:
     explicit PluginEditor (PluginProcessor& p);

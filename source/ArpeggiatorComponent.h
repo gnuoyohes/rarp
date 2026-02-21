@@ -3,7 +3,8 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_gui_basics/juce_gui_basics.h>
 
-class ArpeggiatorComponent : public juce::Component
+class ArpeggiatorComponent : public juce::Component,
+                             public juce::Button::Listener
 {
 public:
     ArpeggiatorComponent (juce::AudioProcessorValueTreeState& state);
@@ -11,11 +12,13 @@ public:
     //==============================================================================
     void paint (juce::Graphics& g) override;
     void resized() override;
+    void buttonClicked (juce::Button* button) override;
 
 private:
     void createSliderAndAttachment (
         juce::AudioProcessorValueTreeState& state,
         juce::Slider& slider,
+        int textBoxWidth,
         juce::Label& label,
         std::string labelText,
         std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>& attachment,
@@ -30,6 +33,7 @@ private:
         std::string paramID);
 
     juce::Slider speedSlider;
+    juce::Slider speedSyncSlider;
     juce::Slider randomizeSlider;
     juce::Slider densitySlider;
     juce::Slider widthSlider;
@@ -38,6 +42,7 @@ private:
     juce::ToggleButton syncButton;
 
     juce::Label speedLabel;
+    juce::Label speedSyncLabel;
     juce::Label randomizeLabel;
     juce::Label densityLabel;
     juce::Label widthLabel;
@@ -45,6 +50,7 @@ private:
     juce::Label syncLabel;
 
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> speedSliderAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> speedSyncSliderAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> randomizeSliderAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> densitySliderAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> widthSliderAttachment;

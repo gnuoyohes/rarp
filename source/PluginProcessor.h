@@ -63,9 +63,10 @@ private:
         return text.getFloatValue() / 1000.0f;
     };
 
+    juce::AudioProcessorValueTreeState::ParameterLayout createParameters();
+
     juce::AudioProcessorValueTreeState state;
     juce::UndoManager undoManager;
-    juce::AudioProcessorValueTreeState::ParameterLayout createParameters();
 
     juce::Synthesiser synth;
 

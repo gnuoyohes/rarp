@@ -114,6 +114,7 @@ void PluginProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     // Prepare arpeggiator
     arp.prepareToPlay (sampleRate,
         state.getRawParameterValue ("noteDur"),
+        state.getRawParameterValue ("noteDurSync"),
         state.getRawParameterValue ("randomize"),
         state.getRawParameterValue ("density"),
         state.getRawParameterValue ("width"),
@@ -187,7 +188,9 @@ void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     keyboardState.processNextMidiBuffer (midiMessages, 0, numSamples, true);
 
     // Process arpeggiator
-    arp.processBlock (buffer, midiMessages);
+    auto posInfo = getPlayHead()->getPosition();
+
+    arp.processBlock (buffer, midiMessages, posInfo);
 
     // Process synth block
     synth.renderNextBlock (buffer, midiMessages, 0, numSamples);
@@ -320,6 +323,13 @@ juce::AudioProcessorValueTreeState::ParameterLayout PluginProcessor::createParam
         juce::AudioProcessorParameter::genericParameter,
         &msValueToTextFunction,
         &msTextToValueFunction
+    ));
+
+    params.push_back (std::make_unique<juce::AudioParameterChoice> (
+        juce::ParameterID { "noteDurSync" },
+        "Note Duration",
+        juce::StringArray { "1/128 note", "1/64 note", "1/32 note", "1/16 note", "1/8 note", "1/4 note", "1/2 note" },
+        5
     ));
 
     params.push_back (std::make_unique<juce::AudioParameterFloat> (
