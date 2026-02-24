@@ -242,6 +242,8 @@ jobs:
     if: contains(github.ref, 'tags/v')
     runs-on: ubuntu-latest
     needs: build_and_test
+    permissions:
+      contents: write
 
     steps:
       - name: Get Artifacts
