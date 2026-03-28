@@ -4,6 +4,6 @@ Arpeggiator instrument plugin with 4 oscillator types, ADSR, randomn note select
 
 Built on JUCE
 
-![RARP screenshot](assets/images/screenshot.png)
 
-[Sample audio (with added eq, reverb, and percussion)](assets/audio/rarp.mp3)
+https://github.com/user-attachments/assets/65a209e3-49bd-4bd2-97be-8d9ab435494c
+
